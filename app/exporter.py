@@ -34,13 +34,17 @@ class MetricExporter:
             self.fetch()
             time.sleep(self.polling_interval_seconds)
 
-    def init_azure_client(self, tenant_id):
+    def init_azure_client(self, tenant_id, subscription_id):
+        credentials = next((sub for sub in self.secrets[tenant_id] if sub["SubscriptionId"] == subscription_id), None)
+        if credentials is None:
+            raise ValueError("Credentials for subscription %s not found" % subscription_id)
+    
         client = CostManagementClient(credential=ClientSecretCredential(
             tenant_id=tenant_id,
-            client_id=self.secrets[tenant_id]["client_id"],
-            client_secret=self.secrets[tenant_id]["client_secret"]
+            client_id=credentials["client_id"],
+            client_secret=credentials["client_secret"]
         ))
-
+    
         return client
 
     def query_azure_cost_explorer(self, azure_client, subscription, group_by, start_date, end_date):
