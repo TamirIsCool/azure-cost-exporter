@@ -109,39 +109,39 @@ class MetricExporter:
                 self.azure_daily_cost_usd.labels(
                     **azure_account, **group_key_values, ChargeType="ActualCost").set(merged_minor_cost)
 
-def fetch(self):
-    processed_tenants = set()  # Set to keep track of processed tenants
-
-    for azure_account in self.targets:
-        tenant_id = azure_account["TenantId"]
-        
-        # Skip the tenant if it's already been processed
-        if tenant_id in processed_tenants:
-            continue
-
-        print(f"Querying cost data for Azure tenant {tenant_id}")
-
-        # Process each subscription for the tenant
-        for sub in self.secrets[tenant_id]:
-            subscription_id = sub["SubscriptionId"]
-            print(f"Processing subscription {subscription_id}")
-            azure_client = self.init_azure_client(tenant_id, subscription_id)
-
-            try:
-                end_date = datetime.today()
-                start_date = end_date - relativedelta(days=1)
-                cost_response = self.query_azure_cost_explorer(
-                    azure_client, subscription_id, self.group_by, start_date, end_date)
-
-                # Process the response for each row
-                for result in cost_response["rows"]:
-                    if result[1] != int(start_date.strftime("%Y%m%d")):
-                        continue
-                    self.expose_metrics(azure_account, result)
-
-            except HttpResponseError as e:
-                logging.error(f"Error querying Azure for subscription {subscription_id}: {e.reason}")
+    def fetch(self):
+        processed_tenants = set()  # Set to keep track of processed tenants
+    
+        for azure_account in self.targets:
+            tenant_id = azure_account["TenantId"]
+            
+            # Skip the tenant if it's already been processed
+            if tenant_id in processed_tenants:
                 continue
-
-        # Mark the tenant as processed
-        processed_tenants.add(tenant_id)
+    
+            print(f"Querying cost data for Azure tenant {tenant_id}")
+    
+            # Process each subscription for the tenant
+            for sub in self.secrets[tenant_id]:
+                subscription_id = sub["SubscriptionId"]
+                print(f"Processing subscription {subscription_id}")
+                azure_client = self.init_azure_client(tenant_id, subscription_id)
+    
+                try:
+                    end_date = datetime.today()
+                    start_date = end_date - relativedelta(days=1)
+                    cost_response = self.query_azure_cost_explorer(
+                        azure_client, subscription_id, self.group_by, start_date, end_date)
+    
+                    # Process the response for each row
+                    for result in cost_response["rows"]:
+                        if result[1] != int(start_date.strftime("%Y%m%d")):
+                            continue
+                        self.expose_metrics(azure_account, result)
+    
+                except HttpResponseError as e:
+                    logging.error(f"Error querying Azure for subscription {subscription_id}: {e.reason}")
+                    continue
+    
+            # Mark the tenant as processed
+            processed_tenants.add(tenant_id)
